@@ -5,8 +5,12 @@
 ```
 $ conda create -n [VENV_NAME] python=3.6
 ```
+2. Upgrade pip
+```
+$ python -m pip install --upgrade pip
+```
 
-2. Install packages from requirements.txt
+3. Install packages from requirements.txt
 ```
 $ pip install -r requirements.txt
 ```
