@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 
 class DataBase:
     cat_columns = ["shopper", "product"]
@@ -47,7 +46,10 @@ class DataBase:
 
         return baskets_train, baskets_test, coupons_train, coupons_test
 
-
+    def original_price(self):
+        baskets = self.load_basket_data()
+        return baskets.groupby('product', as_index=False)["price"].max().rename(
+            columns={'price': 'original_price'})
 
 
     # def load_all_data(self):

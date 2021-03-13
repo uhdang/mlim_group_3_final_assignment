@@ -3,7 +3,7 @@ import pandas as pd
 from gensim.models import Word2Vec
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
-from db.datastreamer import DataStreamer
+from db.Datastreamer import DataStreamer
 
 class Category:
 
