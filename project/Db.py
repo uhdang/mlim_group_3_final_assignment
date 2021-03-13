@@ -19,6 +19,9 @@ class DataBase:
     def load_basket_coupon_data(self):
         baskets = self.load_basket_data()
         coupons = self.load_coupon_data()
+        for column in self.cat_columns:
+            baskets[column] = baskets[column].astype('category')
+            coupons[column] = coupons[column].astype('category')
         return baskets, coupons
 
     def split_data(self, baskets, coupons, num_shoppers=100):
@@ -29,10 +32,11 @@ class DataBase:
         coupons_train = coupons.loc[(coupons["shopper"].isin(list(range(num_shoppers)))) & (coupons["week"] <= self.split_week), :]
         coupons_test = coupons.loc[(coupons["shopper"].isin(list(range(num_shoppers)))) & (coupons["week"] > self.split_week), :]
 
-        baskets_train[self.cat_columns] = baskets_train[self.cat_columns].astype('category')
-        baskets_test[self.cat_columns] = baskets_test[self.cat_columns].astype('category')
-        coupons_train[self.cat_columns] = coupons_train[self.cat_columns].astype('category')
-        coupons_test[self.cat_columns] = coupons_test[self.cat_columns].astype('category')
+        for column in self.cat_columns:
+            baskets_train[column] = baskets_train[column].cat.remove_unused_categories()
+            baskets_test[column] = baskets_test[column].cat.remove_unused_categories()
+            coupons_train[column] = coupons_train[column].cat.remove_unused_categories()
+            coupons_test[column] = coupons_test[column].cat.remove_unused_categories()
 
         return baskets_train, baskets_test, coupons_train, coupons_test
 

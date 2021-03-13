@@ -58,12 +58,12 @@ class Testset:
                         .merge(total_count_of_product, on=['shopper', 'product'], how='left')
                         .merge(reordered_product, on=['shopper', 'product'], how='left')
                         .merge(category_count, on=['shopper', 'category'], how='left')
-                        .merge(reordered_category(), on=['shopper', 'category'], how='left')
-                        .merge(coupon_in_same_category(), on=['week', 'shopper', 'category'], how='left')
-                        .merge(average_price_per_shopper(), on=['shopper'], how='left')
-                        .merge(average_basket_size(), on=['shopper'], how='left')
-                        .merge(unique_products_per_shopper(), on=['shopper'], how='left')
-                        .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
+                        .merge(reordered_category, on=['shopper', 'category'], how='left')
+                        .merge(coupon_in_same_category, on=['week', 'shopper', 'category'], how='left')
+                        .merge(average_price_per_shopper, on=['shopper'], how='left')
+                        .merge(average_basket_size, on=['shopper'], how='left')
+                        .merge(unique_products_per_shopper, on=['shopper'], how='left')
+                        .merge(unique_categories_per_shopper, on=['shopper'], how='left')
                        # .merge(ratio_of_reordered_products_per_shopper(), on=['shopper'], how='left')
                        # .merge(ratio_of_reordered_categories_per_shopper(), on=['shopper'], how='left')
                         )
@@ -91,7 +91,7 @@ class Testset:
 
     def split_testingset_to_X_test_and_y_test(self, testing_set):
         y_test = testing_set.pop("target")
-        X_test = testing_set.drop("week", inplace=True, axis=1)
+        X_test = testing_set.drop("week", axis=1)
 
         categorical = X_test.select_dtypes(exclude=np.number).columns.tolist()
         for cats in categorical:

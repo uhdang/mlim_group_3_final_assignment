@@ -61,12 +61,12 @@ class Trainset:
                         .merge(total_count_of_product, on=['shopper', 'product'], how='left')
                         .merge(reordered_product, on=['shopper', 'product'], how='left')
                         .merge(category_count, on=['shopper', 'category'], how='left')
-                        .merge(reordered_category(), on=['shopper', 'category'], how='left')
-                        .merge(coupon_in_same_category(), on=['week', 'shopper', 'category'], how='left')
-                        .merge(average_price_per_shopper(), on=['shopper'], how='left')
-                        .merge(average_basket_size(), on=['shopper'], how='left')
-                        .merge(unique_products_per_shopper(), on=['shopper'], how='left')
-                        .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
+                        .merge(reordered_category, on=['shopper', 'category'], how='left')
+                        .merge(coupon_in_same_category, on=['week', 'shopper', 'category'], how='left')
+                        .merge(average_price_per_shopper, on=['shopper'], how='left')
+                        .merge(average_basket_size, on=['shopper'], how='left')
+                        .merge(unique_products_per_shopper, on=['shopper'], how='left')
+                        .merge(unique_categories_per_shopper, on=['shopper'], how='left')
                         # .merge(ratio_of_reordered_products_per_shopper(), on=['shopper'], how='left')
                         # .merge(ratio_of_reordered_categories_per_shopper(), on=['shopper'], how='left')
                         )
@@ -95,7 +95,7 @@ class Trainset:
 
     def split_trainingset_to_X_train_and_y_train(self, training_set):
         y_train = training_set.pop("target")
-        X_train = training_set.drop("week", inplace=True, axis=1)
+        X_train = training_set.drop("week", axis=1)
 
         categorical = X_train.select_dtypes(exclude=np.number).columns.tolist()
         for cats in categorical:

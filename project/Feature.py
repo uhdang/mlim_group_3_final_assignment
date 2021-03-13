@@ -23,7 +23,7 @@ class Feature:
 
     def reordered_category(self):
         reordered_category = (self.baskets_train.groupby(["shopper"])["category"].value_counts() > 1).astype(int)
-        reordered_category = reordered_category.to_frame("reordered_category").reset_index()
+#         reordered_category = reordered_category.to_frame("reordered_category").reset_index()
         return reordered_category
 
     def coupon_in_same_category(self):
@@ -44,13 +44,13 @@ class Feature:
 
     def unique_products_per_shopper(self):
         unique_products_per_shopper = self.baskets_train.groupby(["shopper"])["product"].nunique()
-        unique_products_per_shopper = unique_products_per_shopper.to_frame("unique_products_per_shopper").reset_index()
+#         unique_products_per_shopper = unique_products_per_shopper.to_frame("unique_products_per_shopper").reset_index()
         return unique_products_per_shopper
 
     def unique_categories_per_shopper(self):
         unique_categories_per_shopper = self.baskets_train.groupby(["shopper"])["category"].nunique()
-        unique_categories_per_shopper = unique_categories_per_shopper.to_frame(
-            "unique_products_per_shopper").reset_index()
+#         unique_categories_per_shopper = unique_categories_per_shopper.to_frame(
+#             "unique_products_per_shopper").reset_index()
         return unique_categories_per_shopper
 
     def ratio_of_reordered_products_per_shopper(self):
