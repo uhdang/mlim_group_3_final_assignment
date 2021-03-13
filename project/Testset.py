@@ -25,7 +25,23 @@ class Testset:
         full_df_test["discount"].fillna(0, inplace=True)
         return full_df_test
 
-    def generate_training_set(self, prods_cat_table,
+    def generate_featureless_testing_set(self, prods_cat_table):
+        full_df_test = self.generate_full_df_test()
+
+        df1 = pd.DataFrame({'key': np.ones(len(self.baskets_test["week"].unique())), 'week': self.baskets_test["week"].unique()})
+        df2 = pd.DataFrame({'key': np.ones(self.num_shoppers), 'shopper': list(range(self.num_shoppers))})
+        df3 = pd.DataFrame({'key': np.ones(250), 'product': list(range(250))})
+
+        featureless_testing_set = (pd
+            .merge(df1, df2, on='key')
+            .merge(df3, on='key')
+            .merge(prods_cat_table, on='product')
+            .merge(full_df_test, on=['week', 'shopper', 'product', 'category'], how='left')[full_df_test.columns]
+            )
+
+        return featureless_testing_set
+
+    def generate_training_set(self, featureless_testing_set,
                               original_price,
                               total_count_of_product,
                               reordered_product,
@@ -40,30 +56,17 @@ class Testset:
         # ratio_of_reordered_products_per_shopper,
         # ratio_of_reordered_categories_per_shopper,
                               ):
-        full_df_test = self.generate_full_df_test()
-
-        df1 = pd.DataFrame({'key': np.ones(len(self.baskets_test["week"].unique())), 'week': self.baskets_test["week"].unique()})
-        df2 = pd.DataFrame({'key': np.ones(self.num_shoppers), 'shopper': list(range(self.num_shoppers))})
-        df3 = pd.DataFrame({'key': np.ones(250), 'product': list(range(250))})
-
-        testing_set = (pd
-            .merge(df1, df2, on='key')
-            .merge(df3, on='key')
-            .merge(prods_cat_table, on='product')
-            .merge(full_df_test, on=['week', 'shopper', 'product', 'category'], how='left')[full_df_test.columns]
-            )
-
-        testing_set = (testing_set
+        testing_set = (featureless_testing_set
                         .merge(original_price, on=['product'], how='left')
                         .merge(total_count_of_product, on=['shopper', 'product'], how='left')
                         .merge(reordered_product, on=['shopper', 'product'], how='left')
                         .merge(category_count, on=['shopper', 'category'], how='left')
-                        .merge(reordered_category(), on=['shopper', 'category'], how='left')
-                        .merge(coupon_in_same_category(), on=['week', 'shopper', 'category'], how='left')
-                        .merge(average_price_per_shopper(), on=['shopper'], how='left')
-                        .merge(average_basket_size(), on=['shopper'], how='left')
-                        .merge(unique_products_per_shopper(), on=['shopper'], how='left')
-                        .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
+                        .merge(reordered_category, on=['shopper', 'category'], how='left')
+                        .merge(coupon_in_same_category, on=['week', 'shopper', 'category'], how='left')
+                        .merge(average_price_per_shopper, on=['shopper'], how='left')
+                        .merge(average_basket_size, on=['shopper'], how='left')
+                        .merge(unique_products_per_shopper, on=['shopper'], how='left')
+                        .merge(unique_categories_per_shopper, on=['shopper'], how='left')
                        # .merge(ratio_of_reordered_products_per_shopper(), on=['shopper'], how='left')
                        # .merge(ratio_of_reordered_categories_per_shopper(), on=['shopper'], how='left')
                         )
@@ -93,7 +96,7 @@ class Testset:
         y_test = testing_set.pop("target")
         X_test = testing_set.drop("week", inplace=True, axis=1)
 
-        categorical = X_test.select_dtypes(exclude=np.number).columns.tolist()
-        for cats in categorical:
-            X_test[cats] = X_test[cats].astype("category")
+        # categorical = X_test.select_dtypes(exclude=np.number).columns.tolist()
+        # for cats in categorical:
+        #     X_test[cats] = X_test[cats].astype("category")
         return X_test, y_test

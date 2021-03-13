@@ -12,7 +12,7 @@ class Feature:
 
     def reordered_product(self):
         reordered_product = (self.baskets_train.groupby(["shopper"])["product"].value_counts() > 1).astype(int)
-        # reordered_product = reordered_product.to_frame("reordered_product").reset_index()
+        reordered_product = reordered_product.to_frame("reordered_product").reset_index()
         return reordered_product
 
     # Category related features:
