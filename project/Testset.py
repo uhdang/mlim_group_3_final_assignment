@@ -32,13 +32,13 @@ class Testset:
                               category_count,
                               reordered_category,
                               coupon_in_same_category,
-                              ratio_of_reordered_products_per_shopper,
-                              ratio_of_reordered_categories_per_shopper,
                               average_price_per_shopper,
                               average_basket_size,
                               unique_products_per_shopper,
                               unique_categories_per_shopper,
                               training_set
+        # ratio_of_reordered_products_per_shopper,
+        # ratio_of_reordered_categories_per_shopper,
                               ):
         full_df_test = self.generate_full_df_test()
 
@@ -60,12 +60,12 @@ class Testset:
                         .merge(category_count, on=['shopper', 'category'], how='left')
                         .merge(reordered_category(), on=['shopper', 'category'], how='left')
                         .merge(coupon_in_same_category(), on=['week', 'shopper', 'category'], how='left')
-                        # .merge(ratio_of_reordered_products_per_shopper(), on=['shopper'], how='left')
-                        # .merge(ratio_of_reordered_categories_per_shopper(), on=['shopper'], how='left')
-                        # .merge(average_price_per_shopper(), on=['shopper'], how='left')
-                        # .merge(average_basket_size(), on=['shopper'], how='left')
-                        # .merge(unique_products_per_shopper(), on=['shopper'], how='left')
-                        # .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
+                        .merge(average_price_per_shopper(), on=['shopper'], how='left')
+                        .merge(average_basket_size(), on=['shopper'], how='left')
+                        .merge(unique_products_per_shopper(), on=['shopper'], how='left')
+                        .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
+                       # .merge(ratio_of_reordered_products_per_shopper(), on=['shopper'], how='left')
+                       # .merge(ratio_of_reordered_categories_per_shopper(), on=['shopper'], how='left')
                         )
 
         testing_set['discount'].fillna(0, inplace=True)

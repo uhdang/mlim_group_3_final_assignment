@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 from gensim.models import Word2Vec
-from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
-from db.Datastreamer import DataStreamer
+from Datastreamer import DataStreamer
 
 class Category:
 
@@ -12,8 +11,9 @@ class Category:
     def __init__(self, baskets_data):
         self.baskets_data = baskets_data
 
-    def generate_basket_list(self, num_shoppers=1000):
-        baskets_p2v = self.baskets_data.loc[(self.baskets_data["shopper"].isin(list(range(num_shoppers)))) & (self.baskets_data["week"] <= self.split_week), :][["week", "shopper", "product"]]
+    def generate_basket_list(self):
+        shoppers_p2v = 1000
+        baskets_p2v = self.baskets_data.loc[(self.baskets_data["shopper"].isin(list(range(shoppers_p2v)))) & (self.baskets_data["week"] <= self.split_week), :][["week", "shopper", "product"]]
         basket_values = baskets_p2v.sort_values(["week", "shopper"]).values
         keys = baskets_p2v["week"].astype(str) + "_" + baskets_p2v["shopper"].astype(str)
         _, index = np.unique(keys, True)
@@ -40,7 +40,7 @@ class Category:
         return model
 
     def generate_product_category_table(self, w2v_model=None, num_category=25):
-        if w2v_model == None:
+        if w2v_model is None:
             w2v_model = self.generate_word2vec_model()
 
         product_keys = [str(product) for product in range(250)]

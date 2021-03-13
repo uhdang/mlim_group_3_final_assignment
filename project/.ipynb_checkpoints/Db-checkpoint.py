@@ -21,7 +21,8 @@ class DataBase:
         coupons = self.load_coupon_data()
         return baskets, coupons
 
-    def split_data(self, num_shoppers=100):
+    def split_data(self):
+        num_shoppers = 100
         baskets, coupons = self.load_basket_coupon_data()
 
         baskets[self.cat_columns] = baskets[self.cat_columns].astype("category")

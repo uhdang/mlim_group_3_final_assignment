@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 class Trainset:
 
     def __init__(self, baskets_train, coupons_train, num_weeks=88, num_shoppers=100):
@@ -24,46 +25,50 @@ class Trainset:
         full_df_train["discount"].fillna(0, inplace=True)
         return full_df_train
 
-    def generate_training_set(self, prods_cat_table,
-                              original_price,
-                              total_count_of_product,
-                              reordered_product,
-                              category_count,
-                              reordered_category,
-                              coupon_in_same_category,
-                              ratio_of_reordered_products_per_shopper,
-                              ratio_of_reordered_categories_per_shopper,
-                              average_price_per_shopper,
-                              average_basket_size,
-                              unique_products_per_shopper,
-                              unique_categories_per_shopper
-                              ):
+    def generate_featureless_training_set(self, prods_cat_table):
         full_df_train = self.generate_full_df_train()
 
         df1 = pd.DataFrame({'key': np.ones(self.num_weeks), 'week': list(range(self.num_weeks))})
         df2 = pd.DataFrame({'key': np.ones(self.num_shoppers), 'shopper': list(range(self.num_shoppers))})
         df3 = pd.DataFrame({'key': np.ones(250), 'product': list(range(250))})
 
-        training_set = (pd
+        featureless_training_set = (pd
             .merge(df1, df2, on='key')
             .merge(df3, on='key')
             .merge(prods_cat_table, on='product')
             .merge(full_df_train, on=['week', 'shopper', 'product', 'category'], how='left')[full_df_train.columns]
             )
+        return featureless_training_set
 
-        training_set = (training_set
+
+    def populate_features(self, featureless_training_set,
+                              original_price,
+                              total_count_of_product,
+                              reordered_product,
+                              category_count,
+                              reordered_category,
+                              coupon_in_same_category,
+                              average_price_per_shopper,
+                              average_basket_size,
+                              unique_products_per_shopper,
+                              unique_categories_per_shopper,
+                              # ratio_of_reordered_products_per_shopper,
+                              # ratio_of_reordered_categories_per_shopper
+                              ):
+
+        training_set = (featureless_training_set
                         .merge(original_price, on=['product'], how='left')
                         .merge(total_count_of_product, on=['shopper', 'product'], how='left')
                         .merge(reordered_product, on=['shopper', 'product'], how='left')
                         .merge(category_count, on=['shopper', 'category'], how='left')
                         .merge(reordered_category(), on=['shopper', 'category'], how='left')
                         .merge(coupon_in_same_category(), on=['week', 'shopper', 'category'], how='left')
+                        .merge(average_price_per_shopper(), on=['shopper'], how='left')
+                        .merge(average_basket_size(), on=['shopper'], how='left')
+                        .merge(unique_products_per_shopper(), on=['shopper'], how='left')
+                        .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
                         # .merge(ratio_of_reordered_products_per_shopper(), on=['shopper'], how='left')
                         # .merge(ratio_of_reordered_categories_per_shopper(), on=['shopper'], how='left')
-                        # .merge(average_price_per_shopper(), on=['shopper'], how='left')
-                        # .merge(average_basket_size(), on=['shopper'], how='left')
-                        # .merge(unique_products_per_shopper(), on=['shopper'], how='left')
-                        # .merge(unique_categories_per_shopper(), on=['shopper'], how='left')
                         )
 
         training_set['discount'].fillna(0, inplace=True)
