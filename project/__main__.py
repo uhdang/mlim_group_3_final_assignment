@@ -9,18 +9,18 @@ from Trainer import Trainer
 file_path = os.getcwd() + "/data/"
 dbase = DataBase(file_path)
 
-# orignal_price
-original_price = dbase.original_price()
+baskets_data, coupons_data = dbase.load_basket_coupon_data()
 
-# baskets data
-baskets_data = dbase.load_basket_data()
+# orignal_price
+original_price = dbase.original_price(baskets_data)
 
 # Product Category Table
 catClass = Category(baskets_data)
 prods_cat_table = catClass.generate_product_category_table()
 
-# Split Data
-baskets_train, baskets_test, coupons_train, coupons_test = dbase.generate_split_data_with_category(prods_cat_table)
+baskets_train, baskets_test, coupons_train, coupons_test = dbase.split_data(baskets_data, coupons_data)
+
+baskets_train, baskets_test, coupons_train, coupons_test = dbase.generate_split_data_with_category(prods_cat_table, baskets_train, baskets_test, coupons_train, coupons_test)
 
 print(baskets_train.head(2))
 print(baskets_test.head(2))

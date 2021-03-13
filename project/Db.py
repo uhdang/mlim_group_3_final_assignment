@@ -21,8 +21,7 @@ class DataBase:
         coupons = self.load_coupon_data()
         return baskets, coupons
 
-    def split_data(self, num_shoppers=100):
-        baskets, coupons = self.load_basket_coupon_data()
+    def split_data(self, baskets, coupons, num_shoppers=100):
 
         baskets_train = baskets.loc[(baskets["shopper"].isin(list(range(num_shoppers)))) & (baskets["week"] <= self.split_week), :]
         baskets_test = baskets.loc[(baskets["shopper"].isin(list(range(num_shoppers)))) & (baskets["week"] > self.split_week), :]
@@ -37,8 +36,7 @@ class DataBase:
 
         return baskets_train, baskets_test, coupons_train, coupons_test
 
-    def generate_split_data_with_category(self, prods_cat_table):
-        baskets_train, baskets_test, coupons_train, coupons_test = self.split_data()
+    def generate_split_data_with_category(self, prods_cat_table, baskets_train, baskets_test, coupons_train, coupons_test):
 
         baskets_train = baskets_train.merge(prods_cat_table, on=['product'], how='left')
         baskets_test = baskets_test.merge(prods_cat_table, on=['product'], how='left')
