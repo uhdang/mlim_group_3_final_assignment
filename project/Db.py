@@ -48,8 +48,7 @@ class DataBase:
 
         return baskets_train, baskets_test, coupons_train, coupons_test
 
-    def original_price(self):
-        baskets = self.load_basket_data()
+    def original_price(self, baskets):
         return baskets.groupby('product', as_index=False)["price"].max().rename(
             columns={'price': 'original_price'})
 
