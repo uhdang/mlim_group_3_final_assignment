@@ -21,8 +21,6 @@ class Trainer:
         categorical = self.X_train.select_dtypes(exclude=np.number).columns.tolist()
         lgb_clf = self.define_lgb_clf()
         lgb_clf.fit(self.X_train, self.y_train, categorical_feature=categorical)
+        self.model = lgb_clf
         return lgb_clf
-
-    # def predict(self):
-
 
