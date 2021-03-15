@@ -7,14 +7,12 @@ from sklearn.cluster import KMeans
 class Dataloader:
     
     def __init__(self, 
-                 path,
-                 weeks = 89, 
-                 shoppers = list(range(100)),
+                 path
     ):
         self.baskets = self._load_data(path, 'baskets.parquet')
         self.coupons = self._load_data(path, 'coupons.parquet')
-        self.weeks = weeks
-        self.shoppers = shoppers
+        self.weeks = None
+        self.shoppers = None
         self.baskets_train = None
         self.baskets_test = None
         self.coupons_train = None
@@ -23,7 +21,9 @@ class Dataloader:
         self.prods_cat_table = None
     
     
-    def train_test_split(self):     
+    def train_test_split(self, weeks, shoppers):     
+        self.weeks = weeks
+        self.shoppers = shoppers
         self.baskets_train = self._split(self.baskets, with_target=True)
         self.baskets_test = self._split(self.baskets, is_test=True, with_target=True)
         
@@ -66,7 +66,7 @@ class Dataloader:
             min_count=1,
             negative=2, 
             sample=0,
-            workers=-1,
+            workers=4,
             sg=1
         )
         product_keys = [str(product) for product in range(250)]
@@ -90,16 +90,18 @@ class Dataloader:
         X_test = self._merge_features(X_test, self.feature_dict)
         
         # Count weeks since last order of that product
-        addkey = X_train.groupby(['shopper','product']).target.apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
-        X_train['weeks_since_prior_product_order'] = X_train.target.eq(0).groupby([X_train['shopper'], X_train['product'], addkey]).cumcount().add(1) # .cumsum()
+        addkey = X_train.groupby(['shopper','product'])['target'].apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
+        X_train['weeks_since_prior_product_order'] = X_train['target'].eq(0).groupby([X_train['shopper'], X_train['product'], addkey]).cumcount().add(1) 
 
-        # Count weeks since last order of that product
-        addkey = X_train.groupby(['shopper','category']).target.apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
-        X_train['weeks_since_prior_category_order'] = X_train.target.eq(0).groupby([X_train['shopper'], X_train['category'], addkey]).cumcount().add(1) # .cumsum()
+        # Count weeks since last order of that category
+        cat_target = X_train.groupby(['week', 'shopper', 'category'])['target'].max().to_frame().reset_index()
+        addkey = cat_target.groupby(['shopper', 'category']).target.apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
+        cat_target['weeks_since_prior_category_order'] = cat_target.target.eq(0).groupby([cat_target['shopper'], cat_target['category'], addkey]).cumcount().add(1) 
+        X_train = X_train.merge(cat_target[['week', 'shopper', 'category', 'weeks_since_prior_category_order']], on=['week', 'shopper', 'category'], how='left')
         
         # Take weeks_since_prior_order from last available week in training and add 1
-        last_week_since_prior_product_order = X_train.groupby(['shopper', 'product']).weeks_since_prior_product_order.last() + 1
-        last_week_since_prior_category_order = X_train.groupby(['shopper', 'category']).weeks_since_prior_category_order.last() + 1
+        last_week_since_prior_product_order = X_train.groupby(['shopper', 'product'])['weeks_since_prior_product_order'].last() + 1
+        last_week_since_prior_category_order = X_train.groupby(['shopper', 'category'])['weeks_since_prior_category_order'].last() + 1
 
         X_test = (X_test
                 .merge(last_week_since_prior_product_order, on=['shopper', 'product'])
