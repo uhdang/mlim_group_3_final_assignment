@@ -89,14 +89,13 @@ class Dataloader:
         X_train = self._merge_features(X_train, self.feature_dict)
         X_test = self._merge_features(X_test, self.feature_dict)
         
+        ############################## weeks since last order #################################
         # Count weeks since last order of that product
-        addkey = X_train.groupby(['shopper','product'])['target'].apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
-        X_train['weeks_since_prior_product_order'] = X_train['target'].eq(0).groupby([X_train['shopper'], X_train['product'], addkey]).cumcount().add(1) 
+        X_train = self._weeks_since_last_order(X_train, 'product')
 
         # Count weeks since last order of that category
         cat_target = X_train.groupby(['week', 'shopper', 'category'])['target'].max().to_frame().reset_index()
-        addkey = cat_target.groupby(['shopper', 'category']).target.apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
-        cat_target['weeks_since_prior_category_order'] = cat_target.target.eq(0).groupby([cat_target['shopper'], cat_target['category'], addkey]).cumcount().add(1) 
+        cat_target = self._weeks_since_last_order(cat_target, 'category')
         X_train = X_train.merge(cat_target[['week', 'shopper', 'category', 'weeks_since_prior_category_order']], on=['week', 'shopper', 'category'], how='left')
         
         # Take weeks_since_prior_order from last available week in training and add 1
@@ -107,6 +106,26 @@ class Dataloader:
                 .merge(last_week_since_prior_product_order, on=['shopper', 'product'])
                 .merge(last_week_since_prior_category_order, on=['shopper', 'category'])
         )
+        ############################### rolling order count/frequencies #####################################
+        windows = [3, 5, 15, 30]
+        for window in windows:
+            X_train = self._rolling_order_count(X_train, 'product', window, True)
+            X_temp = self._rolling_order_count(X_train, 'product', window, False)
+            X_test = X_test.merge(
+                X_temp.loc[X_temp['week']==(self.weeks-1), ['shopper', 'product', 'count_of_product_order_last_' + str(window) + '_weeks']], 
+                on=['shopper', 'product'], 
+                how='left'
+            )
+            
+            cat_target = self._rolling_order_count(cat_target, 'category', window, True)
+            X_train = X_train.merge(cat_target[['week', 'shopper', 'category', 'count_of_category_order_last_' + str(window) + '_weeks']], on=['week', 'shopper', 'category'], how='left')
+            X_temp_cat = self._rolling_order_count(cat_target, 'category', window, False)
+            X_test = X_test.merge(
+                X_temp_cat.loc[X_temp_cat['week']==(self.weeks-1), ['shopper', 'category', 'count_of_category_order_last_' + str(window) + '_weeks']], 
+                on=['shopper', 'category'], 
+                how='left'
+            )
+        #####################################################################################################
         
         X_train.drop('week', inplace=True, axis=1)
         X_test.drop('week', inplace=True, axis=1)
@@ -114,6 +133,18 @@ class Dataloader:
         y_test = X_test.pop('target')
         
         return X_train, y_train, X_test, y_test
+    
+    
+    def _weeks_since_last_order(self, X_train, feature):
+        addkey = X_train.groupby(['shopper', feature])['target'].apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
+        X_train['weeks_since_prior_' + feature + '_order'] = X_train['target'].eq(0).groupby([X_train['shopper'], X_train[feature], addkey]).cumcount().add(1) 
+        return X_train
+    
+    
+    def _rolling_order_count(self, X_train, feature, window, is_train):
+        X_train['count_of_' + feature + '_order_last_' + str(window) + '_weeks'] = X_train.groupby(['shopper', feature])['target'].apply(lambda x: x.rolling(window).sum().shift(is_train)).fillna(0)
+        return X_train
+        
     
     
     def _load_data(self, path, name):
