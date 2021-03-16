@@ -45,7 +45,7 @@ class Dataloader:
         # return self.baskets_train, self.baskets_test, self.coupons_train, self.coupons_test
     
     
-    def create_category_table(self, n_shoppers=1000):
+    def create_category_table(self, n_shoppers=10000):
         # Step 1: create a list of baskets
         shoppers_p2v = list(range(n_shoppers))
         baskets_p2v = self.baskets.loc[
@@ -110,7 +110,7 @@ class Dataloader:
         windows = [3, 5, 15, 30]
         for window in windows:
             X_train = self._rolling_order_count(X_train, 'product', window, True)
-            X_temp = self._rolling_order_count(X_train, 'product', window, False)
+            X_temp = self._rolling_order_count(X_train.copy(), 'product', window, False)
             X_test = X_test.merge(
                 X_temp.loc[X_temp['week']==(self.weeks-1), ['shopper', 'product', 'count_of_product_order_last_' + str(window) + '_weeks']], 
                 on=['shopper', 'product'], 
