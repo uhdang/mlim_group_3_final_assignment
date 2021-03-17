@@ -19,7 +19,7 @@ class Dataloader:
         self.coupons_test = None
         self.feature_dict = None
         self.prods_cat_table = None
-
+        self.num_cat = 25
 
     def train_test_split(self, weeks, shoppers):
         self.weeks = weeks
@@ -204,6 +204,7 @@ class Dataloader:
                    .merge(feature['reordered_category'], on=['shopper', 'category'], how='left')
                    .merge(feature['coupon_in_same_category'], on=['week', 'shopper', 'category'], how='left')
                    .merge(feature['avg_categorical_discount'], on=['category'], how='left')
+                   .merge(feature['num_coupons_week_shopper_category'], on=["week", "shopper"], how="left")
                    .merge(feature['ratio_of_reordered_products_per_shopper'], on=['shopper'], how='left')
                    .merge(feature['ratio_of_reordered_categories_per_shopper'], on=['shopper'], how='left')
                    .merge(feature['average_price_per_shopper'], on=['shopper'], how='left')
@@ -239,6 +240,24 @@ class Dataloader:
 
         return combined_df
 
+    def get_avg_categorical_discount(self, original_price):
+        c_w_op = self.coupons_train.merge(original_price, on="product", how="left")
+        c_w_op["abs_discount_v"] = c_w_op["original_price"] * (c_w_op["discount"] / 100)
+        avg_categorical_discount = c_w_op.groupby(["category"], as_index=False)["abs_discount_v"].mean() \
+            .rename(columns={"abs_discount_v": "avg_categorical_discount"})
+        return avg_categorical_discount
+
+    def get_num_coupons_week_shopper_category(self):
+        coupons_week_shopper_category_grouped = self.coupons_train.groupby(["week", "shopper", "category"], as_index=False)[
+            "discount"].count()
+        coupons_week_shopper_category_grouped["discount"] = coupons_week_shopper_category_grouped["discount"].fillna(0)
+        week_shopper_only = coupons_week_shopper_category_grouped[["week", "shopper"]].drop_duplicates(
+            subset=["week", "shopper"], keep="last").reset_index(drop=True)
+        d_only = coupons_week_shopper_category_grouped["discount"].values
+        sliced_by_cat = [d_only[self.num_cat * i:self.num_cat * i + self.num_cat] for i in range(0, len(d_only) // self.num_cat)]
+        sliced_df = pd.DataFrame(data=sliced_by_cat, columns=[list(range(self.num_cat))])
+        num_coupons_week_shopper_category = pd.concat([week_shopper_only, sliced_df], axis=1)
+        return num_coupons_week_shopper_category
 
     def create_feature_dict(self):
         original_price = self._original_price()
@@ -273,11 +292,11 @@ class Dataloader:
         )
         coupon_in_same_category['coupon_in_same_category'] = 'Yes'
 
+        ## avg_categorical_discount
+        avg_categorical_discount = self.get_avg_categorical_discount(original_price)
 
-        c_w_op = self.coupons_train.merge(original_price, on="product", how="left")
-        c_w_op["abs_discount_v"] = c_w_op["original_price"] * (c_w_op["discount"] / 100)
-        avg_categorical_discount = c_w_op.groupby(["category"], as_index=False)["abs_discount_v"].mean()\
-            .rename(columns={"abs_discount_v": "avg_categorical_discount"})
+        ## num_coupons_week_shopper_category
+        num_coupons_week_shopper_category = self.get_num_coupons_week_shopper_category()
 
         # Shopper related features
         average_price_per_shopper = (self.baskets_train
@@ -325,6 +344,7 @@ class Dataloader:
             'reordered_category': reordered_category,
             'coupon_in_same_category': coupon_in_same_category,
             'avg_categorical_discount': avg_categorical_discount,
+            'num_coupons_week_shopper_category': num_coupons_week_shopper_category,
             'average_price_per_shopper': average_price_per_shopper,
             'average_basket_size': average_basket_size,
             'unique_products_per_shopper': unique_products_per_shopper,
