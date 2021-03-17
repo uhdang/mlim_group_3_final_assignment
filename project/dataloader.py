@@ -19,6 +19,7 @@ class Dataloader:
         self.coupons_test = None
         self.feature_dict = None
         self.prods_cat_table = None
+        self.prods_vec_table = None
     
     
     def train_test_split(self, weeks, shoppers):     
@@ -36,8 +37,8 @@ class Dataloader:
     def add_categories(self):
         if self.prods_cat_table is None: self.create_category_table() 
         
-        self.baskets_train = self.baskets_train.merge(self.prods_cat_table, on=['product'], how='left')
-        self.baskets_test = self.baskets_test.merge(self.prods_cat_table, on=['product'], how='left')
+        self.baskets_train = self.baskets_train.merge(self.prods_cat_table, on=['product'], how='left')#.merge(self.prods_vec_table, on=['product'], how='left')
+        self.baskets_test = self.baskets_test.merge(self.prods_cat_table, on=['product'], how='left')#.merge(self.prods_vec_table, on=['product'], how='left')
 
         self.coupons_train = self.coupons_train.merge(self.prods_cat_table, on=['product'], how='left')
         self.coupons_test = self.coupons_test.merge(self.prods_cat_table, on=['product'], how='left')
@@ -71,6 +72,9 @@ class Dataloader:
         )
         product_keys = [str(product) for product in range(250)]
         product_vectors = model.wv[product_keys]
+        prods_vec_table = pd.DataFrame({int(product_key): product_vector for (product_key, product_vector) in zip(product_keys, product_vectors)})
+        prods_vec_table = prods_vec_table.T.rename_axis('product').reset_index()
+        prods_vec_table['product'] = prods_vec_table['product'].astype('category')
         
         # Step 3: Generating product categories
         kmeans = KMeans(n_clusters=25, random_state=0).fit(product_vectors)
@@ -79,6 +83,7 @@ class Dataloader:
         prods_cat_table["category"] = kmeans.labels_
         prods_cat_table[['product', 'category']] = prods_cat_table[['product', 'category']].astype('category')
         
+        self.prods_vec_table = prods_vec_table
         self.prods_cat_table = prods_cat_table
     
     
@@ -117,6 +122,7 @@ class Dataloader:
                 how='left'
             )
             
+            cat_target = X_train.groupby(['week', 'shopper', 'category'])['target'].sum().to_frame().reset_index()
             cat_target = self._rolling_order_count(cat_target, 'category', window, True)
             X_train = X_train.merge(cat_target[['week', 'shopper', 'category', 'count_of_category_order_last_' + str(window) + '_weeks']], on=['week', 'shopper', 'category'], how='left')
             X_temp_cat = self._rolling_order_count(cat_target, 'category', window, False)
@@ -215,10 +221,12 @@ class Dataloader:
                    .merge(df1, df2, on='key')
                    .merge(df3, on='key')
                    .merge(self.prods_cat_table, on='product')
+                   .merge(self.prods_vec_table, on='product')
                    .merge(combined_df, 
                           on=['week', 'shopper', 'product', 'category'], 
                           how='left'
                    )[combined_df.columns]
+                   
         )
         
         return full_df
@@ -229,9 +237,9 @@ class Dataloader:
         
         full_df = (full_df
                    .merge(original_price, on=['product'], how='left')
-                   .merge(feature['total_count_of_product'], on=['shopper', 'product'], how='left')
-                   .merge(feature['reordered_product'], on=['shopper', 'product'], how='left')
+                   .merge(feature['product_count'], on=['shopper', 'product'], how='left')
                    .merge(feature['category_count'], on=['shopper', 'category'], how='left')
+                   .merge(feature['reordered_product'], on=['shopper', 'product'], how='left')
                    .merge(feature['reordered_category'], on=['shopper', 'category'], how='left')
                    .merge(feature['coupon_in_same_category'], on=['week', 'shopper', 'category'], how='left')
                    .merge(feature['ratio_of_reordered_products_per_shopper'], on=['shopper'], how='left')
@@ -243,6 +251,8 @@ class Dataloader:
         )
         full_df['discount'].fillna(0, inplace=True)
         full_df['price'].fillna(full_df['original_price']*(1-full_df['discount']/100), inplace=True)
+        full_df['product_count'].fillna(0, inplace=True)
+        full_df['category_count'].fillna(0, inplace=True)    # maybe leave NA and to drop NAs for negative sampling
         full_df['reordered_product'].fillna(0, inplace=True)
         full_df['reordered_category'].fillna(0, inplace=True)
         full_df['coupon'].fillna('No', inplace=True)
@@ -272,9 +282,10 @@ class Dataloader:
     
     def create_feature_dict(self):
         # Product related features
-        total_count_of_product = (self.baskets_train
+        product_count = (self.baskets_train
                                   .groupby(['shopper', 'product'])['product']
-                                  .count().to_frame('total_count_of_product')
+                                  .count()
+                                  .to_frame('product_count')
                                   .reset_index()
         )
         reordered_product = ((self.baskets_train
@@ -341,9 +352,9 @@ class Dataloader:
         unique_categories_per_shopper = unique_categories_per_shopper.to_frame('unique_categories_per_shopper').reset_index()
         
         self.feature_dict = {
-            'total_count_of_product': total_count_of_product,
-            'reordered_product': reordered_product,
+            'product_count': product_count,
             'category_count': category_count,
+            'reordered_product': reordered_product,
             'reordered_category': reordered_category,
             'coupon_in_same_category': coupon_in_same_category,
             'average_price_per_shopper': average_price_per_shopper,
