@@ -133,6 +133,11 @@ class Dataloader:
             )
         #####################################################################################################
         
+        categorical = X_train.select_dtypes(exclude=np.number).columns.tolist()
+        for cats in categorical:
+          X_train[cats] = X_train[cats].astype('category')
+          X_test[cats] = X_test[cats].astype('category')
+
         X_train.drop('week', inplace=True, axis=1)
         X_test.drop('week', inplace=True, axis=1)
         y_train = X_train.pop('target')
@@ -225,9 +230,10 @@ class Dataloader:
                    .merge(combined_df, 
                           on=['week', 'shopper', 'product', 'category'], 
                           how='left'
-                   )[combined_df.columns]
+                   )
                    
         )
+        full_df = full_df.loc[:, full_df.columns!='key']
         
         return full_df
     
