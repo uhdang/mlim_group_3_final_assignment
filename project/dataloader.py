@@ -237,8 +237,8 @@ class Dataloader:
         
         full_df = (full_df
                    .merge(original_price, on=['product'], how='left')
-                   .merge(feature['product_count'], on=['shopper', 'product'], how='left')
-                   .merge(feature['category_count'], on=['shopper', 'category'], how='left')
+                   .merge(feature['ratio_product_count'], on=['shopper', 'product'], how='left')
+                   .merge(feature['ratio_category_count'], on=['shopper', 'category'], how='left')
                    .merge(feature['reordered_product'], on=['shopper', 'product'], how='left')
                    .merge(feature['reordered_category'], on=['shopper', 'category'], how='left')
                    .merge(feature['coupon_in_same_category'], on=['week', 'shopper', 'category'], how='left')
@@ -251,8 +251,8 @@ class Dataloader:
         )
         full_df['discount'].fillna(0, inplace=True)
         full_df['price'].fillna(full_df['original_price']*(1-full_df['discount']/100), inplace=True)
-        full_df['product_count'].fillna(0, inplace=True)
-        full_df['category_count'].fillna(0, inplace=True)    # maybe leave NA and to drop NAs for negative sampling
+        full_df['ratio_product_count'].fillna(0, inplace=True)
+        full_df['ratio_category_count'].fillna(0, inplace=True)    # maybe leave NA and to drop NAs for negative sampling
         full_df['reordered_product'].fillna(0, inplace=True)
         full_df['reordered_category'].fillna(0, inplace=True)
         full_df['coupon'].fillna('No', inplace=True)
@@ -282,12 +282,11 @@ class Dataloader:
     
     def create_feature_dict(self):
         # Product related features
-        product_count = (self.baskets_train
+        ratio_product_count = (self.baskets_train
                                   .groupby(['shopper', 'product'])['product']
-                                  .count()
-                                  .to_frame('product_count')
-                                  .reset_index()
-        )
+                                  .count()/self.weeks
+        ).to_frame('ratio_product_count').reset_index()
+                                  
         reordered_product = ((self.baskets_train
                               .groupby(['shopper'])['product']
                               .value_counts()>1)
@@ -295,12 +294,11 @@ class Dataloader:
         )
         
         # Category related features
-        category_count = (self.baskets_train
+        ratio_category_count = (self.baskets_train
                           .groupby(['shopper', 'category'])['category']
-                          .count()
-                          .to_frame('category_count')
-                          .reset_index()
-        )
+                          .count()/self.weeks
+        ).to_frame('ratio_category_count').reset_index()
+        
         reordered_category = ((self.baskets_train
                                .groupby(['shopper'])['category']
                                .value_counts()>1)
@@ -352,8 +350,8 @@ class Dataloader:
         unique_categories_per_shopper = unique_categories_per_shopper.to_frame('unique_categories_per_shopper').reset_index()
         
         self.feature_dict = {
-            'product_count': product_count,
-            'category_count': category_count,
+            'ratio_product_count': ratio_product_count,
+            'ratio_category_count': ratio_category_count,
             'reordered_product': reordered_product,
             'reordered_category': reordered_category,
             'coupon_in_same_category': coupon_in_same_category,
