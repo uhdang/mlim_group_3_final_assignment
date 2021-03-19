@@ -74,7 +74,7 @@ class Dataloader:
         )
         product_keys = [str(product) for product in range(250)]
         product_vectors = model.wv[product_keys]
-        prods_vec_table = pd.DataFrame({int(product_key): product_vector for (product_key, product_vector) in zip(product_keys, product_vectors)})
+        prods_vec_table = pd.DataFrame({f"vec_{product_key}": product_vector for (product_key, product_vector) in zip(product_keys, product_vectors)})
         prods_vec_table = prods_vec_table.T.rename_axis('product').reset_index()
         prods_vec_table['product'] = prods_vec_table['product'].astype('category')
         
@@ -332,7 +332,7 @@ class Dataloader:
             subset=["week", "shopper"], keep="last").reset_index(drop=True)
         d_only = coupons_week_shopper_category_grouped["discount"].values
         sliced_by_cat = [d_only[self.num_cat * i:self.num_cat * i + self.num_cat] for i in range(0, len(d_only) // self.num_cat)]
-        sliced_df = pd.DataFrame(data=sliced_by_cat, columns=[list(range(self.num_cat))])
+        sliced_df = pd.DataFrame(data=sliced_by_cat, columns=[f"c_cat_{cat}" for cat in range(self.num_cat)])
         num_coupons_week_shopper_category = pd.concat([week_shopper_only, sliced_df], axis=1)
         return num_coupons_week_shopper_category
 
