@@ -261,9 +261,8 @@ class Dataloader:
 
       full_df = (negative_basket
                 .merge(self.prods_cat_table, on='product')
-                .merge(self.prods_vec_table, on='product')
                 .merge(combined_df, on=['week', 'shopper', 'product', 'category'], how='outer')
-                
+                .merge(self.prods_vec_table, on='product')    
       )
 
       return full_df
