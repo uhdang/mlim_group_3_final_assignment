@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from gensim.models import Word2Vec
 from sklearn.cluster import KMeans
+import random
 
 
 class Dataloader:
@@ -205,37 +206,67 @@ class Dataloader:
         return data_split
 
 
-    def _make_full_table(self, basket, coupon):
+    # def _make_full_table(self, basket, coupon):
 
-        combined_df = self._combine_basket_coupon(basket, coupon)
-        weeks = list(basket["week"].unique())
+    #     combined_df = self._combine_basket_coupon(basket, coupon)
+    #     weeks = list(basket["week"].unique())
 
-        df1 = pd.DataFrame({
-            'key':np.ones(len(weeks)),
-            'week':weeks
-        })
-        df2 = pd.DataFrame({
-            'key':np.ones(len(self.shoppers)),
-            'shopper':self.shoppers
-        })
-        df3 = pd.DataFrame({
-            'key':np.ones(250), 'product':list(range(250))
-        })
+    #     df1 = pd.DataFrame({
+    #         'key':np.ones(len(weeks)),
+    #         'week':weeks
+    #     })
+    #     df2 = pd.DataFrame({
+    #         'key':np.ones(len(self.shoppers)),
+    #         'shopper':self.shoppers
+    #     })
+    #     df3 = pd.DataFrame({
+    #         'key':np.ones(250), 'product':list(range(250))
+    #     })
 
-        full_df = (pd
-                   .merge(df1, df2, on='key')
-                   .merge(df3, on='key')
-                   .merge(self.prods_cat_table, on='product')
-                   .merge(self.prods_vec_table, on='product')
-                   .merge(combined_df, 
-                          on=['week', 'shopper', 'product', 'category'], 
-                          how='left'
-                   )
-                   
-        )
-        full_df = full_df.loc[:, full_df.columns!='key']
+    #     full_df = (pd
+    #                .merge(df1, df2, on='key')
+    #                .merge(df3, on='key')
+    #                .merge(self.prods_cat_table, on='product')
+    #                .merge(self.prods_vec_table, on='product')
+    #                .merge(combined_df, 
+    #                       on=['week', 'shopper', 'product', 'category'], 
+    #                       how='left'
+    #                )   
+    #     )
+    #     full_df = full_df.loc[:, full_df.columns!='key']
         
-        return full_df
+    #     return full_df
+
+    def _make_full_table(self, basket, coupon):
+      combined_df = self._combine_basket_coupon(basket, coupon)
+      week_list = list(basket["week"].unique())
+
+      weeks = []
+      shoppers = []
+      products = []
+
+      for week in week_list:
+        for shopper in self.shoppers:
+          product_list = combined_df.loc[(combined_df['week']==week) & (combined_df['shopper']==shopper), 'product'].to_list()
+          n = len(product_list)//2
+          weeks = weeks + np.full(n, week).tolist()
+          shoppers = shoppers + np.full(n, shopper).tolist()
+          products = products + random.sample([i for i in range(250) if i not in product_list], n)
+
+      negative_basket = pd.DataFrame({
+        'week': pd.Series(weeks, dtype='int'),
+        'shopper': pd.Series(shoppers, dtype='category'),
+        'product': pd.Series(products, dtype='category')
+      })
+
+      full_df = (negative_basket
+                .merge(self.prods_cat_table, on='product')
+                .merge(self.prods_vec_table, on='product')
+                .merge(combined_df, on=['week', 'shopper', 'product', 'category'], how='outer')
+                
+      )
+
+      return full_df
 
 
     def _merge_features(self, full_df, feature):
@@ -408,19 +439,22 @@ class DataStreamer():
         for basket in self.data:
             yield basket.tolist()
 
-
 def create_combined_dict(X_train_list, y_train_list, X_test_list, y_test_list, cv_dict):
+  if X_train_list==list():
+    pass
+  else:
     X_train_df = pd.concat(X_train_list, ignore_index=True)
     X_train_df['shopper'] = X_train_df['shopper'].astype('category')
     y_train_df = pd.concat(y_train_list, ignore_index=True)
     y_train_df = y_train_df.astype('category')
-    X_test_df = pd.concat(X_test_list, ignore_index=True)
-    X_test_df['shopper'] = X_test_df['shopper'].astype('category')
-    y_test_df = pd.concat(y_test_list, ignore_index=True)
-    y_test_df = y_test_df.astype('category')
     cv_dict['X_train'].append(X_train_df)
     cv_dict['y_train'].append(y_train_df)
-    cv_dict['X_test'].append(X_test_df)
-    cv_dict['y_test'].append(y_test_df)
+    
+  X_test_df = pd.concat(X_test_list, ignore_index=True)
+  X_test_df['shopper'] = X_test_df['shopper'].astype('category')
+  y_test_df = pd.concat(y_test_list, ignore_index=True)
+  y_test_df = y_test_df.astype('category')
+  cv_dict['X_test'].append(X_test_df)
+  cv_dict['y_test'].append(y_test_df)
 
-    return cv_dict
+  return cv_dict
