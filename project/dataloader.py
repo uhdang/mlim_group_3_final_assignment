@@ -74,7 +74,7 @@ class Dataloader:
         )
         product_keys = [str(product) for product in range(250)]
         product_vectors = model.wv[product_keys]
-        prods_vec_table = pd.DataFrame({f"vec_{product_key}": product_vector for (product_key, product_vector) in zip(product_keys, product_vectors)})
+        prods_vec_table = pd.DataFrame({int(product_key): product_vector for (product_key, product_vector) in zip(product_keys, product_vectors)})
         prods_vec_table = prods_vec_table.T.rename_axis('product').reset_index()
         prods_vec_table['product'] = prods_vec_table['product'].astype('category')
         
