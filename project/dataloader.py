@@ -135,7 +135,7 @@ class Dataloader:
             )
         #####################################################################################################
         
-        categorical = X_train.select_dtypes(exclude=np.number).columns.tolist()
+        categorical = ['shopper', 'product', 'category', 'coupon', 'coupon_in_same_category']
         for cats in categorical:
           X_train[cats] = X_train[cats].astype('category')
           X_test[cats] = X_test[cats].astype('category')
