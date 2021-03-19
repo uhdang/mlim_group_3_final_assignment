@@ -407,3 +407,20 @@ class DataStreamer():
     def __iter__(self):
         for basket in self.data:
             yield basket.tolist()
+
+
+def create_combined_dict(X_train_list, y_train_list, X_test_list, y_test_list, cv_dict):
+    X_train_df = pd.concat(X_train_list, ignore_index=True)
+    X_train_df['shopper'] = X_train_df['shopper'].astype('category')
+    y_train_df = pd.concat(y_train_list, ignore_index=True)
+    y_train_df = y_train_df.astype('category')
+    X_test_df = pd.concat(X_test_list, ignore_index=True)
+    X_test_df['shopper'] = X_test_df['shopper'].astype('category')
+    y_test_df = pd.concat(y_test_list, ignore_index=True)
+    y_test_df = y_test_df.astype('category')
+    cv_dict['X_train'].append(X_train_df)
+    cv_dict['y_train'].append(y_train_df)
+    cv_dict['X_test'].append(X_test_df)
+    cv_dict['y_test'].append(y_test_df)
+
+    return cv_dict
