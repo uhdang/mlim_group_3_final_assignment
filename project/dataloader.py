@@ -325,7 +325,7 @@ class Dataloader:
         return avg_categorical_discount
 
     def get_num_coupons_week_shopper_category(self):
-        coupons_week_shopper_category_grouped = self.coupons_train.groupby(["week", "shopper", "category"], as_index=False)[
+        coupons_week_shopper_category_grouped = pd.concat([self.coupons_train, self.coupons_test]).groupby(["week", "shopper", "category"], as_index=False)[
             "discount"].count()
         coupons_week_shopper_category_grouped["discount"] = coupons_week_shopper_category_grouped["discount"].fillna(0)
         week_shopper_only = coupons_week_shopper_category_grouped[["week", "shopper"]].drop_duplicates(
@@ -450,6 +450,7 @@ def create_combined_dict(X_train_list, y_train_list, X_test_list, y_test_list, c
     cv_dict['y_train'].append(y_train_df)
     
   X_test_df = pd.concat(X_test_list, ignore_index=True)
+  X_test_df['product'] = X_test_df['product'].astype('category')
   X_test_df['shopper'] = X_test_df['shopper'].astype('category')
   y_test_df = pd.concat(y_test_list, ignore_index=True)
   y_test_df = y_test_df.astype('category')
