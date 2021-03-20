@@ -137,9 +137,8 @@ class Dataloader:
                 how='left'
             )
         #####################################################################################################
-        
         X_train = self._downsample(X_train)
-        X_test = self._downsample(X_test)
+        # X_test = self._downsample(X_test)
 
         categorical = ['shopper', 'product', 'category', 'coupon', 'coupon_in_same_category']
         for cats in categorical:
