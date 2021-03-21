@@ -23,4 +23,6 @@ $ pip install -r requirements.txt
 
 
 * Export command for install packages
+```
 $ pip list --format=freeze > requirements.txt
+```
