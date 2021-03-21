@@ -3,14 +3,10 @@
 ## Initial Setup
 1. Virtual Environment Setup
 ```
-$ conda create -n [VENV_NAME] python=3.6
-```
-2. Upgrade pip
-```
-$ python -m pip install --upgrade pip
+$ conda create -n mlim_group_3 python=3.8
 ```
 
-3. Install packages from requirements.txt
+2. Install packages from requirements.txt
 ```
 $ pip install -r requirements.txt
 ```
