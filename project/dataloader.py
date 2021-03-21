@@ -2,15 +2,89 @@ import pandas as pd
 import numpy as np
 from gensim.models import Word2Vec
 from sklearn.cluster import KMeans
-import random
 from sklearn.utils import resample
 
 
 class Dataloader:
+    """
+    A class used for load data and feature generation
+
+    ...
+    Attributes
+    __________
+        baskets : pandas dataframe
+            baskets data loaded from baskets.parquet
+        coupons : pandas dataframe
+            coupons data loaded from coupons.parquet
+        weeks : int
+            value of splitting week for train set and test set
+        shoppers : int
+            Number of targetd shoppers
+        baskets_train : pandas dataframe
+            baskets training set
+        baskets_test : pandas dataframe
+            baskets testing set
+        coupons_train : pandas dataframe
+            coupons training set
+        coupons_test : pandas dataframe
+            coupons test set
+        feature_dict : dictionary
+            dictionary of key-value layout of each features
+        prods_cat_table :
+            product category table using a combination of Word2Vec model and kMeans
+        prods_vec_table :
+            product vector table using from product vector generated from Word2Vec model
+        num_cat : int
+            number of categories given
+
+    Methods
+    _______
+    train_test_split(self, weeks, shoppers)
+        split baskets and coupons into train and test sets given weeks and shoppers value
+    add_categories(self)
+        merge category table into trai and test sets of bakset and coupon data
+    create_category_table(self, n_shoppers=10000)
+        create category table using Word2Vec and kMeans and product vector table
+    make_featured_data(self)
+        produce complete feature-added splited data of X_train, y_train, X_test, y_test
+    _downsample(self, df)
+        resample feature and target dataframe
+    _weeks_since_last_order(self, X_train, feature)
+        generate `weeks_since_prior_order` feature
+    _rolling_order_count(self, X_train, feature, window, is_train)
+        generate `rolling window count` feature
+    _load_data(self, path, name)
+        load parquet data and add categories
+    _categorize_data(self, data, remove_cat=True)
+        update dtype for shopper and product as category
+    _original_price(self)
+        original price table for all products
+    _split(self, data, is_test=False, with_target=False)
+        split given data using shopper and week variable and add target variable
+    _make_full_table(self, basket, coupon)
+        generate a blank master table for each shopper for each week for product
+    _merge_features(self, full_df, feature)
+        merge features to master dataframe using feature dictionary
+    _combine_basket_coupon(self, basket, coupon)
+        produce a dataframe merging basket and coupon
+    get_avg_categorical_discount(self, original_price)
+        generate average categorical discount feature
+    get_num_coupons_week_shopper_category(self)
+        generate number of coupons per week per shopper per category feature
+    create_feature_dict(self)
+        create a feature dictionary populating features
+    create_combined_dict(X_train_list, y_train_list, X_test_list, y_test_list, cv_dict)
+        generate a dictionary filled with overall generated test and train data set
+
+    """
 
     def __init__(self,
                  path
     ):
+        """
+        :param path: int
+            file path for parquet data
+        """
         self.baskets = self._load_data(path, 'baskets.parquet')
         self.coupons = self._load_data(path, 'coupons.parquet')
         self.weeks = None
@@ -25,7 +99,13 @@ class Dataloader:
         self.num_cat = 25
 
     
-    def train_test_split(self, weeks, shoppers):     
+    def train_test_split(self, weeks, shoppers):
+        """
+        split baskets and coupons data into train and test sets
+
+        :param weeks: register number of weeks value to the class
+        :param shoppers: register number of shoppers value to the class
+        """
         self.weeks = weeks
         self.shoppers = shoppers
         self.baskets_train = self._split(self.baskets, with_target=True)
@@ -38,6 +118,9 @@ class Dataloader:
 
 
     def add_categories(self):
+        """
+        create category table if unavailable, and the merge categories to each basket and coupon train and test tables
+        """
         if self.prods_cat_table is None: self.create_category_table()
         
         self.baskets_train = self.baskets_train.merge(self.prods_cat_table, on=['product'], how='left')#.merge(self.prods_vec_table, on=['product'], how='left')
@@ -50,6 +133,11 @@ class Dataloader:
     
     
     def create_category_table(self, n_shoppers=10000):
+        """
+            Create a category table using Word2Vec model sorting the category using kMeans.
+            Also register product vector table
+        :param n_shoppers: number of shoppers used to create category table
+        """
         # Step 1: create a list of baskets
         shoppers_p2v = list(range(n_shoppers))
         baskets_p2v = self.baskets.loc[
@@ -93,6 +181,11 @@ class Dataloader:
 
 
     def make_featured_data(self):
+        """
+        populate and return X_train, X_test, y_train, y_test with full features added
+
+        :return: X_train, y_train, X_test, y_test
+        """
         X_train = self._make_full_table(self.baskets_train, self.coupons_train)
         X_test = self._make_full_table(self.baskets_test, self.coupons_test)
 
@@ -154,6 +247,12 @@ class Dataloader:
 
     
     def _downsample(self, df):
+        """
+        resample features and target for efficient computational power usage
+
+        :param df: feature dataframe
+        :return: df_all
+        """
         df_target_coupon = df.loc[(df['target']==1) | (df['coupon']=='Yes')]
         df_down = df.loc[(df['target']==0) & (df['coupon']=='No')]
         df_down = resample(
@@ -169,17 +268,43 @@ class Dataloader:
 
 
     def _weeks_since_last_order(self, X_train, feature):
+        """
+        generate weeks_since_last_order feature
+
+        :param X_train: pandas dataframe
+            feature training set
+        :param feature:
+            designated features
+        :return: X_train
+            feature training set with a feature `weeks_since_last_order`
+        """
         addkey = X_train.groupby(['shopper', feature])['target'].apply(lambda x : x.eq(1).shift().fillna(0).cumsum())
         X_train['weeks_since_prior_' + feature + '_order'] = X_train['target'].eq(0).groupby([X_train['shopper'], X_train[feature], addkey]).cumcount().add(1) 
         return X_train
     
     
     def _rolling_order_count(self, X_train, feature, window, is_train):
+        """
+        generate specified count in window of weeks feature
+
+        :param X_train: pandas dataframe
+        :param feature: str
+        :param window: int
+        :param is_train: bool
+        :return: X_train
+        """
         X_train['count_of_' + feature + '_order_last_' + str(window) + '_weeks'] = X_train.groupby(['shopper', feature])['target'].apply(lambda x: x.rolling(window).sum().shift(is_train)).fillna(0)
         return X_train
         
 
     def _load_data(self, path, name):
+        """
+        load parquet data and add categories
+
+        :param path: str filepath
+        :param name: str filename
+        :return: pandas dataframe data
+        """
         data = pd.read_parquet(path + name)
         data = self._categorize_data(data, remove_cat=False)
 
@@ -187,6 +312,13 @@ class Dataloader:
 
 
     def _categorize_data(self, data, remove_cat=True):
+        """
+        update dtype for shopper and product as category
+
+        :param data: pandas dataframe
+        :param remove_cat: bool
+        :return: pandas dataframe with dtype converted to category and specified columns removed
+        """
         cat_columns = ['shopper', 'product']
         for column in cat_columns:
             data[column] = data[column].astype('category')
@@ -197,6 +329,11 @@ class Dataloader:
 
 
     def _original_price(self):
+        """
+        original price table for all products
+
+        :return: pandas dataframe for price table
+        """
         original_price = (self.baskets
                           .groupby('product', as_index=False)['price']
                           .max()
@@ -207,6 +344,15 @@ class Dataloader:
 
 
     def _split(self, data, is_test=False, with_target=False):
+        """
+        split given data using shopper and week variable and add target variable
+
+        :param data: pandas dataframe
+        :param is_test: bool
+        :param with_target: bool
+        :return: data_split
+            dataframe splited with target column added
+        """
         if is_test:
             data_split = data.loc[
                 (data['shopper'].isin(self.shoppers))
@@ -227,6 +373,14 @@ class Dataloader:
 
 
     def _make_full_table(self, basket, coupon):
+        """
+        generate a blank master table for each shopper for each week for product
+
+        :param basket: pandas dataframe
+        :param coupon: pandas dataframe
+        :return: full_df
+            merged dataframe from basket and coupon dataframe
+        """
 
         combined_df = self._combine_basket_coupon(basket, coupon)
       
@@ -260,6 +414,13 @@ class Dataloader:
 
 
     def _merge_features(self, full_df, feature):
+        """
+        merge features to master dataframe using feature dictionary
+
+        :param full_df: dataframe
+        :param feature: feature dictionary
+        :return: dataframe features added
+        """
         original_price = self._original_price()
 
         full_df = (full_df
@@ -292,6 +453,13 @@ class Dataloader:
 
 
     def _combine_basket_coupon(self, basket, coupon):
+        """
+        produce a dataframe merging basket and coupon
+
+        :param basket: pandas dataframe
+        :param coupon: pandas dataframe
+        :return: combined_df: combined dataframe
+        """
         combined_df = (basket
                        .merge(
                            coupon,
@@ -309,6 +477,12 @@ class Dataloader:
         return combined_df
 
     def get_avg_categorical_discount(self, original_price):
+        """
+        generate average categorical discount feature
+
+        :param original_price: pandas dataframe wiht original prices for all products
+        :return: feature of average categorical discount
+        """
         c_w_op = self.coupons_train.merge(original_price, on="product", how="left")
         c_w_op["abs_discount_v"] = c_w_op["original_price"] * (c_w_op["discount"] / 100)
         avg_categorical_discount = c_w_op.groupby(["category"], as_index=False)["abs_discount_v"].mean() \
@@ -316,6 +490,11 @@ class Dataloader:
         return avg_categorical_discount
 
     def get_num_coupons_week_shopper_category(self):
+        """
+        generate number of coupons per week per shopper per category feature
+
+        :return: pandas dataframe of number of coupons for each week for each shopper for each category
+        """
         coupons_week_shopper_category_grouped = pd.concat([self.coupons_train, self.coupons_test]).groupby(["week", "shopper", "category"], as_index=False)[
             "discount"].count()
         coupons_week_shopper_category_grouped["discount"] = coupons_week_shopper_category_grouped["discount"].fillna(0)
@@ -328,6 +507,11 @@ class Dataloader:
         return num_coupons_week_shopper_category
 
     def create_feature_dict(self):
+        """
+        create a feature dictionary populating features
+
+        :return: dictionary filled with feature data
+        """
         original_price = self._original_price()
 
         # Product related features
@@ -431,6 +615,9 @@ class DataStreamer():
 
 
 def create_combined_dict(X_train_list, y_train_list, X_test_list, y_test_list, cv_dict):
+    """
+        generate a dictionary filled with overall generated test and train data set
+    """
     if X_train_list==list():
         pass
     else:

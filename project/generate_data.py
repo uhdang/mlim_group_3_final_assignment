@@ -1,4 +1,7 @@
 def prepare_data():
+    """
+    generate data for cross-validation and produce best parameters after hypertuning
+    """
     from sklearn.metrics import roc_auc_score
     import pickle
     import os
@@ -6,9 +9,7 @@ def prepare_data():
     has_cv_dict_available = input("Do you have generated data available in data folder as pickle? (Yes / No) ")
     if has_cv_dict_available == "Yes":
         print("Loading...")
-        # cv_dict_name = input("Please provide name of the datafile with extension i.e. cv_dict.pickle ")
         cv_dict_name = "cv_dict.pickle"
-        # Load Data From Picklek
         with open(os.getcwd() + "/data/" + cv_dict_name, 'rb') as f:
             cv_dict = pickle.load(f)
     else:
@@ -17,7 +18,6 @@ def prepare_data():
     prediction_best_params_available = input("Do you have prediction and best_params available? (Yes / No) ")
     if prediction_best_params_available == "Yes":
         print("Loading...")
-        # Load Data From Picklek
         with open(os.getcwd() + "/data/best_param.pickle", 'rb') as f:
             best_params = pickle.load(f)
         with open(os.getcwd() + "/data/pred.pickle", 'rb') as f:
@@ -39,6 +39,14 @@ def prepare_data():
         print("    {}: {}".format(key, value))
 
 def hyper_tuning(cv_dict):
+    """
+    cross-validation model of lightgbm for the purpose of hypertuning
+
+    :param cv_dict: dictionary
+        Collected dictionary of X_train, y_train, X_test, y_test for given week folds
+    :return: lightgbm model
+        cross-validation trained lightgbm model
+    """
     import optuna.integration.lightgbm as lightgb
 
     dtrain = lightgb.Dataset(cv_dict['X_train'][0], label=cv_dict['y_train'][0])
@@ -58,6 +66,7 @@ def hyper_tuning(cv_dict):
         "boosting_type": "gbdt",
     }
 
+    # cross-validation of lightgb model
     lgb_clf = lightgb.train(
         params,
         dtrain,
@@ -71,6 +80,13 @@ def hyper_tuning(cv_dict):
 
 
 def downsample(df, y):
+    """
+    resample features and target for efficient computational power usage
+
+    :param df: feature dataframe
+    :param y: target data
+    :return: df_all, y_all
+    """
     import pandas as pd
     pd.options.mode.chained_assignment = None  # default='warn'
     from sklearn.utils import resample
@@ -90,8 +106,13 @@ def downsample(df, y):
     y_all = pd.concat([y_target_coupon, y_down], ignore_index=True)
 
     return df_all, y_all
-
 def generate_data():
+    """
+    Generate data for each shoppers for each week for each product combination in preparation for cross-validation
+
+    :return: cv_dict
+        Collected dictionary of X_train, y_train, X_test, y_test for given week folds
+    """
     from tqdm import tqdm
     from dataloader import Dataloader
     from dataloader import create_combined_dict
@@ -151,6 +172,6 @@ def generate_data():
     return cv_dict
 
 if __name__ == "__main__":
-    print("Running generate_data")
+    print("Running generate_data()")
     prepare_data()
 
