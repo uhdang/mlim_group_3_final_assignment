@@ -75,6 +75,8 @@ class Dataloader:
         create a feature dictionary populating features
     create_combined_dict(X_train_list, y_train_list, X_test_list, y_test_list, cv_dict)
         generate a dictionary filled with overall generated test and train data set
+    baskets_train_prediction(self)
+        create a full training table over 89 weeks for training the model and prediction probabilities in week 90
 
     """
 
@@ -603,6 +605,47 @@ class Dataloader:
             'ratio_of_reordered_products_per_shopper': ratio_of_reordered_products_per_shopper,
             'ratio_of_reordered_categories_per_shopper': ratio_of_reordered_categories_per_shopper
         }
+
+
+    def baskets_train_prediction(self, shopper):
+        self.shoppers = shopper
+        self.weeks = 90
+        baskets = self.baskets.loc[self.baskets['shopper'].isin(self.shoppers)]
+        baskets['target'] = 1
+        self.baskets_train = self._categorize_data(baskets)
+        self.coupons_train = self._categorize_data(self.coupons.loc[self.coupons['shopper'].isin(self.shoppers)])
+
+        self.baskets_train = self.baskets_train.merge(self.prods_cat_table, on=['product'], how='left')
+        self.coupons_train = self.coupons_train.merge(self.prods_cat_table, on=['product'], how='left')
+        self.create_feature_dict()
+
+        X_train = self._make_full_table(self.baskets_train, self.coupons_train)
+        X_train = self._merge_features(X_train, self.feature_dict)
+
+        ############################## weeks since last order #################################
+        # Count weeks since last order of that product
+        X_train = self._weeks_since_last_order(X_train, 'product')
+
+        ############################### rolling order count/frequencies #####################################
+        windows = [3, 5, 15, 30]
+        for window in windows:
+            X_train = self._rolling_order_count(X_train, 'product', window, True)
+            
+            cat_target = X_train.groupby(['week', 'shopper', 'category'])['target'].sum().to_frame().reset_index()
+            cat_target = self._rolling_order_count(cat_target, 'category', window, True)
+            X_train = X_train.merge(cat_target[['week', 'shopper', 'category', 'count_of_category_order_last_' + str(window) + '_weeks']], on=['week', 'shopper', 'category'], how='left')
+        #####################################################################################################
+        
+        X_train = self._downsample(X_train)
+
+        categorical = ['shopper', 'product', 'category', 'coupon', 'coupon_in_same_category']
+        for cats in categorical:
+            X_train[cats] = X_train[cats].astype('category')
+
+        #X_train.drop('week', inplace=True, axis=1)
+        y_train = X_train.pop('target')
+
+        return X_train, y_train
 
 
 class DataStreamer():
