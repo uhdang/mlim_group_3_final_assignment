@@ -19,7 +19,7 @@ class Dataloader:
         weeks : int
             value of splitting week for train set and test set
         shoppers : int
-            Number of targetd shoppers
+            Number of targeted shoppers
         baskets_train : pandas dataframe
             baskets training set
         baskets_test : pandas dataframe

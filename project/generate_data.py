@@ -1,42 +1,54 @@
 def prepare_data():
     """
-    generate data for cross-validation and produce best parameters after hypertuning
+    generate data for cross-validation and produce best parameters after hyperparameter-tuning
     """
     from sklearn.metrics import roc_auc_score
     import pickle
     import os
 
-    has_cv_dict_available = input("Do you have generated data available in data folder as pickle? (Yes / No) ")
-    if has_cv_dict_available == "Yes":
+    best_params_available = input("Since data generatioin and Hyper-parameter tuning takes ~7 hrs, you can load available pickle data as well. Would you like to load available data? (Yes / No) ")
+    if best_params_available == "Yes":
         print("Loading...")
-        cv_dict_name = "cv_dict.pickle"
-        with open(os.getcwd() + "/data/" + cv_dict_name, 'rb') as f:
-            cv_dict = pickle.load(f)
-    else:
-        cv_dict = generate_data()
-
-    prediction_best_params_available = input("Do you have prediction and best_params available? (Yes / No) ")
-    if prediction_best_params_available == "Yes":
-        print("Loading...")
-        with open(os.getcwd() + "/data/best_param.pickle", 'rb') as f:
+        with open(os.getcwd() + "/pickle/best_param.pickle", 'rb') as f:
             best_params = pickle.load(f)
-        with open(os.getcwd() + "/data/pred.pickle", 'rb') as f:
-            prediction = pickle.load(f)
+
+        print("Best params:", best_params)
+        print("  Params: ")
+        for key, value in best_params.items():
+            print("    {}: {}".format(key, value))
     else:
-        lgb_clf = hyper_tuning(cv_dict)
-        prediction = lgb_clf.predict(cv_dict['X_test'][3], num_iteration=lgb_clf.best_iteration)
-        best_params = lgb_clf.params
 
-    AUC = roc_auc_score(
-        y_true = cv_dict['y_test'][3],
-        y_score = prediction
-    )
+        has_cv_dict_available = input("Do you have generated data available in data folder as pickle? (Yes / No) ")
+        if has_cv_dict_available == "Yes":
+            print("Loading...")
+            cv_dict_name = "cv_dict.pickle"
+            with open(os.getcwd() + "/data/" + cv_dict_name, 'rb') as f:
+                cv_dict = pickle.load(f)
+        else:
+            cv_dict = generate_data()
 
-    print("Best params:", best_params)
-    print("  Accuracy = {}".format(AUC))
-    print("  Params: ")
-    for key, value in best_params.items():
-        print("    {}: {}".format(key, value))
+        prediction_best_params_available = input("Do you have prediction and best_params available? (Yes / No) ")
+        if prediction_best_params_available == "Yes":
+            print("Loading...")
+            with open(os.getcwd() + "/pickle/best_param.pickle", 'rb') as f:
+                best_params = pickle.load(f)
+            with open(os.getcwd() + "/pickle/pred.pickle", 'rb') as f:
+                prediction = pickle.load(f)
+        else:
+            lgb_clf = hyper_tuning(cv_dict)
+            prediction = lgb_clf.predict(cv_dict['X_test'][3], num_iteration=lgb_clf.best_iteration)
+            best_params = lgb_clf.params
+
+        AUC = roc_auc_score(
+            y_true = cv_dict['y_test'][3],
+            y_score = prediction
+        )
+
+        print("Best params:", best_params)
+        print("  Accuracy = {}".format(AUC))
+        print("  Params: ")
+        for key, value in best_params.items():
+            print("    {}: {}".format(key, value))
 
 def hyper_tuning(cv_dict):
     """

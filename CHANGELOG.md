@@ -1,8 +1,62 @@
 # Changelog
-All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.1.1] - 2021-03-21
+### Added
+- docstring added
+- execution run file added
+
+
+## [0.1.0] - 2021-03-20
+### Added
+- generate cross-validation dictionary
+- best params from hyper parameter tuning
+
+
+## [0.0.9] - 2021-03-20
+### Added
+- generate corss-validation dictionary
+
+### Fixed
+- Fixed category
+- Fixed product vector NAs
+
+
+## [0.0.8] - 2021-03-19
+### Added
+- method to create training and test dictionary added
+
+### Fixed
+- Fixed category
+- Fixed product vector NAs
+
+
+## [0.0.7] - 2021-03-18
+### Added
+- cross-validation added
+
+
+## [0.0.6] - 2021-03-17
+### Added
+- product vectors added
+
+## [0.0.5] - 2021-03-16
+### Added
+- avg_categorical_discount feature added
+- moving_window implemented
+
+### Fixed
+- Fixed category generation sample size
+
+
+## [0.0.4] - 2021-03-15
+### Added
+- Category generated
+
+
+## [0.0.3] - 2021-03-11
+### Changed
+- Functionalize each steps from notebook
+
 
 ## [0.0.2] - 2021-03-10
 ### Changed

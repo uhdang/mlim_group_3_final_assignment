@@ -13,7 +13,7 @@
 2. Install dependencies
    - $ pip install -r requirements.txt
 3. Run pipeline
-   - $ run.sh
+   - $ sh run.sh
 
 ## Pipeline
 
@@ -21,3 +21,9 @@ The pipeline includes the following steps:
 1. Build data and run hyper-tuning
 1. Train and make a prediction
 
+## File Info
+
+- project
+    - dataloader.py : dataloader class including data-loading and data-generation logic as well as feature engineering
+    - generate_data.py : data generation and cross-validation steps to produce hyperparameter-tuned parameters
+    - train_cv.ipynb : Jupyter Notebook used for development
